@@ -23,6 +23,8 @@ def login_view(request):
                messages.error(request,"Invalid Credentials")
                return redirect("login_view_url")
 
-              
-    
      return render(request, 'AccountApp/login_page.html')
+  
+def logout_view(request):
+    request.session.flush()
+    return redirect('login_view_url')
