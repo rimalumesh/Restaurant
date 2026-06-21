@@ -39,7 +39,7 @@
 
             {% for table in tables %}
 
-            <a href="#"
+            <a href="{% url 'menu_view_url' table.id %}"
                 class="bg-white rounded-2xl shadow-md hover:shadow-xl transition transform hover:scale-105 active:scale-95 p-6 flex items-center justify-center">
 
                 <div class="text-center">
