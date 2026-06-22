@@ -1,3 +1,4 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -33,87 +34,130 @@
             </ul>
         </div>
 
+
+
+
         <!-- ================= SELECTED ITEMS ================= -->
         <div class="w-1/2 bg-white p-4 rounded-lg shadow">
 
-            <h1 class="text-2xl font-bold mb-4">Selected Items</h1>
+            <h1 class="text-2xl font-bold mb-4">Current Order</h1>
             <ul id="selected-menu-items" class="space-y-2"></ul>
+
             <!-- TOTAL -->
             <form class="mt-4 border-t pt-3 text-xl font-bold" method="post">
                 {% csrf_token %}
-                Total: Rs. <span id="total-price" class="text-xl font-bold">0</span>
+                Total: Rs. <span id="total-price">0</span>
 
                 <input id="order-items" type="hidden" name="order-items" value="">
 
                 <button id="submit-order" class="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
                     Place Order
                 </button>
-
             </form>
-            <!-- SUBMIT -->
 
+            <!-- PREVIOUS ORDERS -->
+            <div class="mt-6 border-t pt-4">
+                <h2 class="text-2xl font-bold mb-4">Previous Orders</h2>
+
+                <div class="space-y-4 max-h-200 overflow-y-auto pr-2">
+                    {% for order in orders %}
+                    <div class="border rounded-lg p-3 bg-gray-50 shadow-sm">
+
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-semibold text-gray-800">
+                                Table {{ order.table }}
+                            </span>
+                            <span class="text-sm text-gray-500">
+                                {{ order.created_at|naturaltime }}
+                            </span>
+                        </div>
+
+                        <ul class="list-disc list-inside space-y-1 text-gray-700">
+                            {% for item in order.items.all %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+
+                    </div>
+                    {% empty %}
+                    <div class="text-gray-500 italic">
+                        No previous orders found.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
         </div>
-    </div>
 
-    <!-- ================= SCRIPT ================= -->
-    <script>
-        const menuItems = document.getElementById("menu-items");
-        const selectedMenuItems = document.getElementById("selected-menu-items");
-        const totalPriceDisplay = document.getElementById("total-price");
-        const submitBtn = document.getElementById("submit-order");
-        const currentTableId = "{{ table_id }}";
 
-        // CART STATE
-        const cart = {};
 
-        /* ================= ADD ITEM ================= */
-        menuItems.addEventListener("click", (event) => {
-            if (event.target.tagName === "LI") {
 
-                const name = event.target.innerText.split("-")[0].trim();
-                const price = parseInt(event.target.getAttribute("data-item-price"));
-                const item_id = parseInt(event.target.getAttribute("data-item-id"));
 
-                if (!cart[name]) {
-                    cart[name] = {item_id: item_id, price, qty: 1 };
-                } else {
-                    cart[name].qty += 1;
+
+
+
+
+
+
+
+        <!-- ================= SCRIPT ================= -->
+        <script>
+            const menuItems = document.getElementById("menu-items");
+            const selectedMenuItems = document.getElementById("selected-menu-items");
+            const totalPriceDisplay = document.getElementById("total-price");
+            const submitBtn = document.getElementById("submit-order");
+            const currentTableId = "{{ table_id }}";
+
+            // CART STATE
+            const cart = {};
+
+            /* ================= ADD ITEM ================= */
+            menuItems.addEventListener("click", (event) => {
+                if (event.target.tagName === "LI") {
+
+                    const name = event.target.innerText.split("-")[0].trim();
+                    const price = parseInt(event.target.getAttribute("data-item-price"));
+                    const item_id = parseInt(event.target.getAttribute("data-item-id"));
+
+                    if (!cart[name]) {
+                        cart[name] = { item_id: item_id, price, qty: 1 };
+                    } else {
+                        cart[name].qty += 1;
+                    }
+
+                    renderCart();
+                }
+            });
+
+            /* ================= INCREASE ================= */
+            function increaseItem(name) {
+                cart[name].qty += 1;
+                renderCart();
+            }
+
+            /* ================= DECREASE ================= */
+            function decreaseItem(name) {
+                cart[name].qty -= 1;
+
+                if (cart[name].qty <= 0) {
+                    delete cart[name];
                 }
 
                 renderCart();
             }
-        });
 
-        /* ================= INCREASE ================= */
-        function increaseItem(name) {
-            cart[name].qty += 1;
-            renderCart();
-        }
+            /* ================= RENDER ================= */
+            function renderCart() {
+                selectedMenuItems.innerHTML = "";
 
-        /* ================= DECREASE ================= */
-        function decreaseItem(name) {
-            cart[name].qty -= 1;
+                let total = 0;
 
-            if (cart[name].qty <= 0) {
-                delete cart[name];
-            }
+                Object.entries(cart).forEach(([name, item]) => {
 
-            renderCart();
-        }
+                    const itemTotal = item.price * item.qty;
+                    total += itemTotal;
 
-        /* ================= RENDER ================= */
-        function renderCart() {
-            selectedMenuItems.innerHTML = "";
-
-            let total = 0;
-
-            Object.entries(cart).forEach(([name, item]) => {
-
-                const itemTotal = item.price * item.qty;
-                total += itemTotal;
-
-                selectedMenuItems.innerHTML += `
+                    selectedMenuItems.innerHTML += `
             <li class="flex justify-between items-center border p-2 rounded">
 
                 <div>
@@ -139,39 +183,39 @@
 
             </li>
         `;
+                });
+
+                totalPriceDisplay.innerText = total;
+            }
+
+            /* ================= SUBMIT ORDER ================= */
+            submitBtn.addEventListener("click", () => {
+                const orderPayload = {
+                    table_id: currentTableId,
+                    items: Object.entries(cart).map(([name, item]) => ({
+                        item_id: item.item_id,
+                        quantity: item.qty
+                    }))
+                };
+                console.log(orderPayload);
+
+                console.log("ORDER PAYLOAD:", orderPayload);
+                document.getElementById("order-items").value = JSON.stringify(orderPayload)
+
+                // Example Django request:
+                /*
+                fetch("/create-order/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")
+                    },
+                    body: JSON.stringify(orderPayload)
+                });
+                */
             });
 
-            totalPriceDisplay.innerText = total;
-        }
-
-        /* ================= SUBMIT ORDER ================= */
-        submitBtn.addEventListener("click", () => {
-            const orderPayload = {
-                table_id: currentTableId,
-                items: Object.entries(cart).map(([name, item]) => ({
-                    item_id: item.item_id,
-                    quantity: item.qty
-                }))
-            };
-            console.log(orderPayload);
-
-            console.log("ORDER PAYLOAD:", orderPayload);
-            document.getElementById("order-items").value = JSON.stringify(orderPayload)
-
-            // Example Django request:
-            /*
-            fetch("/create-order/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken")
-                },
-                body: JSON.stringify(orderPayload)
-            });
-            */
-        });
-
-    </script>
+        </script>
 
 </body>
 
