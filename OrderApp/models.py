@@ -18,15 +18,39 @@ class Catagory(models.Model):
     def __str__(self):
         return self.name
     
+class KITCHEN_STATION(models.Model):
+    name = models.CharField(max_length=200)
+    
+    def __str__(self):
+        return self.name
+
+
+
 class MenuItem(models.Model):
+    class PRIORITY_CHOICES(models.TextChoices):
+        HIGH = '3', 'High'
+        MEDIUM = '2', 'Medium'
+        LOW = '1', 'Low'
+    
     category = models.ForeignKey(Catagory,on_delete=models.CASCADE,related_name="items")
+    station = models.ForeignKey(KITCHEN_STATION,on_delete=models.SET_NULL, null= True)
+    
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=10,decimal_places=2)
     description = models.TextField(null=True,blank=True)
+    default_priority = models.CharField(max_length=2, choices = PRIORITY_CHOICES,default=PRIORITY_CHOICES.MEDIUM)
+    est_time = models.PositiveIntegerField(help_text = "Write estimated time in minutes",null=True,blank=True)
+    
     
     def __str__(self):
         return self.name
     
+
+
+
+
+
+
 
 class Order(models.Model):
     class ORDER_STATUS(models.TextChoices):
@@ -54,6 +78,7 @@ class OrderItem(models.Model):
     price = models.PositiveIntegerField()
     quantity = models.PositiveIntegerField(default=1)
     status = models.CharField(max_length=2, choices = ITEM_STATUS,default=ITEM_STATUS.PREPARING)
+    priority = models.CharField(max_length=2, choices = MenuItem.PRIORITY_CHOICES,default = MenuItem.PRIORITY_CHOICES.MEDIUM)
     
     def __str__(self):
         return f"{self.menu_item} x {self.quantity} qtys"
@@ -67,3 +92,5 @@ class OrderHistory(models.Model):
     def __str__(self):
         return f"{self.order} -> {self.status} at {self.created_at}"
     
+    
+

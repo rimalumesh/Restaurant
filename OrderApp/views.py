@@ -51,6 +51,7 @@ def menu_view(request,table_id):
     })
 
 
+@role_required([User.ROLE_CHOICES.KITCHEN])
+def kitchen_dashboard_view(request):
+    return render(request, 'OrderApp/kitchen_dashboard.html')
 
-def kitchen_view(request):
-    return render('kitchen_view_url')

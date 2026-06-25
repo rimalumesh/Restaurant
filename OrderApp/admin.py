@@ -6,8 +6,13 @@ from .models import Table,Catagory,MenuItem,Order,OrderItem,OrderHistory
 class TableAdmin(admin.ModelAdmin):
     list_display = ["name","is_reserved"]
     
+    
+@admin.register(MenuItem)
+class MenuItemAdmin(admin.ModelAdmin):
+    list_display = ["name","default_priority"]
+
+
 admin.site.register(Catagory)
-admin.site.register(MenuItem)
 admin.site.register(OrderItem)
 admin.site.register(OrderHistory)
 
