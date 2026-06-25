@@ -5,6 +5,7 @@ from .models import Table,Catagory,Order,OrderItem,MenuItem
 import json
 from django.contrib import messages
 from django.http import HttpResponse
+from . import signals
 
 
 # Create your views here.
@@ -17,7 +18,6 @@ def tables_view(request):
     })
 
 @role_required([User.ROLE_CHOICES.WAITER])
-
 def menu_view(request,table_id):
     if request.method == "POST":
         data = request.POST.get("order-items")
