@@ -28,7 +28,7 @@
         <!-- Header -->
         <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
             <h1 class="text-2xl font-bold text-slate-900">
-               Kitchen Dashboard
+                Kitchen Dashboard
             </h1>
 
             <div class="flex justify-between items-center">
@@ -47,10 +47,19 @@
 
         <!-- Tables -->
         <div>
-            Orders will appear here very soon!
+
+            
+            {% for station_name,items in order_items.items %}
+            <div>{{ station_name}}</div>
+            {% for item in items %}
+                <li>{{item}}-{{item.get_priority_display}}</li>
+            {% endfor %}
+            <hr>
+            {% endfor %}
+                  
+
         </div>
 
-    </div>
 
 </body>
 

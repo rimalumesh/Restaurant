@@ -10,213 +10,223 @@
 
 <body class="bg-gray-100 p-6">
 
-    <div class="flex gap-6">
+<div class="flex gap-6">
 
-        <!-- ================= MENU ================= -->
-        <div class="w-1/2 bg-white p-4 rounded-lg shadow">
+    <!-- ================= MENU ================= -->
+    <div class="w-1/2 bg-white p-4 rounded-lg shadow">
+        <h1 class="text-2xl font-bold mb-4">Menu</h1>
 
-            <h1 class="text-2xl font-bold mb-4">Menu</h1>
+        <div id="menu-items">
 
-            <ul id="menu-items" class="space-y-2">
-                {% for category in categories %}
-                {% for item in category.items.all %}
+            {% for category in categories %}
 
-                <li class="cursor-pointer p-2 border rounded hover:bg-green-100" data-item-id="{{ item.id }}"
-                    data-item-price="{{ item.price }}">
+            <div class="mb-4">
 
-                    {{ item.name }} : Rs.{{ item.price }}
+                <h2 class="text-lg font-bold bg-gray-100 px-3 py-2 rounded">
+                    {{ category.name }}
+                </h2>
 
-                </li>
+                <ul class="mt-2 space-y-2">
 
-                {% endfor %}
-                {% endfor %}
+                    {% for item in category.items.all %}
+                    <li
+                        class="cursor-pointer p-2 border rounded hover:bg-green-100"
+                        data-item-id="{{ item.id }}"
+                        data-item-price="{{ item.price }}"
+                        data-item-name="{{ item.name }}"
+                    >
+                        <div class="flex justify-between">
+                            <span>{{ item.name }}</span>
+                            <span>Rs. {{ item.price }}</span>
+                        </div>
+                    </li>
+                    {% endfor %}
 
-            </ul>
+                </ul>
+
+            </div>
+
+            {% endfor %}
+
         </div>
+    </div>
 
+    <!-- ================= ORDER PANEL ================= -->
+    <div class="w-1/2 bg-white p-4 rounded-lg shadow">
 
+        <h1 class="text-2xl font-bold mb-4">Current Order</h1>
 
+        <form method="post" id="order-form">
+            {% csrf_token %}
 
-        <!-- ================= SELECTED ITEMS ================= -->
-        <div class="w-1/2 bg-white p-4 rounded-lg shadow">
-
-            <h1 class="text-2xl font-bold mb-4">Current Order</h1>
             <ul id="selected-menu-items" class="space-y-2"></ul>
 
             <!-- TOTAL -->
-            <form class="mt-4 border-t pt-3 text-xl font-bold" method="post">
-                {% csrf_token %}
+            <div class="mt-4 border-t pt-3 text-xl font-bold">
                 Total: Rs. <span id="total-price">0</span>
-
-                <input id="order-items" type="hidden" name="order-items" value="">
-
-                <button id="submit-order" class="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
-                    Place Order
-                </button>
-            </form>
-
-            <!-- PREVIOUS ORDERS -->
-            <div class="mt-6 border-t pt-4">
-                <h2 class="text-2xl font-bold mb-4">Previous Orders</h2>
-
-                <div class="space-y-4 max-h-200 overflow-y-auto pr-2">
-                    {% for order in orders %}
-                    <div class="border rounded-lg p-3 bg-gray-50 shadow-sm">
-
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-semibold text-gray-800">
-                                Table {{ order.table }}
-                            </span>
-                            <span class="text-sm text-gray-500">
-                                {{ order.created_at|naturaltime }}
-                            </span>
-                        </div>
-
-                        <ul class="list-disc list-inside space-y-1 text-gray-700">
-                            {% for item in order.items.all %}
-                            <li>{{ item }}</li>
-                            {% endfor %}
-                        </ul>
-
-                    </div>
-                    {% empty %}
-                    <div class="text-gray-500 italic">
-                        No previous orders found.
-                    </div>
-                    {% endfor %}
-                </div>
             </div>
 
+            <!-- HIDDEN FIELD -->
+            <input type="hidden" name="order-items" id="order-items">
+
+            <button type="submit"
+                    class="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+                Place Order
+            </button>
+
+        </form>
+
+        <!-- PREVIOUS ORDERS -->
+        <div class="mt-6 border-t pt-4">
+            <h2 class="text-2xl font-bold mb-4">Previous Orders</h2>
+
+            <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
+
+                {% for order in orders %}
+                <div class="border rounded-lg p-3 bg-gray-50 shadow-sm">
+
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold">
+                            Table {{ order.table }}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                            {{ order.created_at|naturaltime }}
+                        </span>
+                    </div>
+
+                    <ul class="list-disc list-inside text-gray-700">
+                        {% for item in order.items.all %}
+                        <li>{{ item.menu_item.name }} x {{ item.quantity }}</li>
+                        {% endfor %}
+                    </ul>
+
+                </div>
+                {% empty %}
+                <div class="text-gray-500 italic">No previous orders found.</div>
+                {% endfor %}
+
+            </div>
         </div>
 
+    </div>
 
+</div>
 
+<!-- ================= SCRIPT ================= -->
+<script>
 
+const menuItemsContainer = document.getElementById("menu-items");
+const selectedMenuItems = document.getElementById("selected-menu-items");
+const totalPriceDisplay = document.getElementById("total-price");
+const orderForm = document.getElementById("order-form");
+const orderInput = document.getElementById("order-items");
+const currentTableId = "{{ table_id }}";
 
+// CART
+const cart = {};
 
+// ================= ADD ITEM =================
+menuItemsContainer.addEventListener("click", function (event) {
 
+    const li = event.target.closest("li[data-item-id]");
+    if (!li) return;
 
+    const id = li.dataset.itemId;
+    const price = Number(li.dataset.itemPrice);
+    const name = li.dataset.itemName;
 
+    if (!cart[id]) {
+        cart[id] = {
+            name,
+            price,
+            qty: 1
+        };
+    } else {
+        cart[id].qty++;
+    }
 
+    renderCart();
+});
 
+// ================= INCREASE =================
+function increaseItem(id) {
+    cart[id].qty++;
+    renderCart();
+}
 
-        <!-- ================= SCRIPT ================= -->
-        <script>
-            const menuItems = document.getElementById("menu-items");
-            const selectedMenuItems = document.getElementById("selected-menu-items");
-            const totalPriceDisplay = document.getElementById("total-price");
-            const submitBtn = document.getElementById("submit-order");
-            const currentTableId = "{{ table_id }}";
+// ================= DECREASE =================
+function decreaseItem(id) {
+    cart[id].qty--;
 
-            // CART STATE
-            const cart = {};
+    if (cart[id].qty <= 0) {
+        delete cart[id];
+    }
 
-            /* ================= ADD ITEM ================= */
-            menuItems.addEventListener("click", (event) => {
-                if (event.target.tagName === "LI") {
+    renderCart();
+}
 
-                    const name = event.target.innerText.split("-")[0].trim();
-                    const price = parseInt(event.target.getAttribute("data-item-price"));
-                    const item_id = parseInt(event.target.getAttribute("data-item-id"));
+// ================= RENDER CART =================
+function renderCart() {
 
-                    if (!cart[name]) {
-                        cart[name] = { item_id: item_id, price, qty: 1 };
-                    } else {
-                        cart[name].qty += 1;
-                    }
+    selectedMenuItems.innerHTML = "";
 
-                    renderCart();
-                }
-            });
+    let total = 0;
 
-            /* ================= INCREASE ================= */
-            function increaseItem(name) {
-                cart[name].qty += 1;
-                renderCart();
-            }
+    Object.entries(cart).forEach(([id, item]) => {
 
-            /* ================= DECREASE ================= */
-            function decreaseItem(name) {
-                cart[name].qty -= 1;
+        const itemTotal = item.price * item.qty;
+        total += itemTotal;
 
-                if (cart[name].qty <= 0) {
-                    delete cart[name];
-                }
-
-                renderCart();
-            }
-
-            /* ================= RENDER ================= */
-            function renderCart() {
-                selectedMenuItems.innerHTML = "";
-
-                let total = 0;
-
-                Object.entries(cart).forEach(([name, item]) => {
-
-                    const itemTotal = item.price * item.qty;
-                    total += itemTotal;
-
-                    selectedMenuItems.innerHTML += `
+        selectedMenuItems.innerHTML += `
             <li class="flex justify-between items-center border p-2 rounded">
 
                 <div>
-                    <div class="font-semibold">${name}</div>
+                    <div class="font-semibold">${item.name}</div>
                     <div class="text-sm text-gray-500">
                         Rs.${item.price} × ${item.qty} = Rs.${itemTotal}
                     </div>
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button onclick="decreaseItem('${name}')"
+
+                    <button type="button"
+                        onclick="decreaseItem('${id}')"
                         class="px-2 py-1 bg-red-500 text-white rounded">
                         -
                     </button>
 
                     <span class="w-6 text-center">${item.qty}</span>
 
-                    <button onclick="increaseItem('${name}')"
+                    <button type="button"
+                        onclick="increaseItem('${id}')"
                         class="px-2 py-1 bg-green-500 text-white rounded">
                         +
                     </button>
+
                 </div>
 
             </li>
         `;
-                });
+    });
 
-                totalPriceDisplay.innerText = total;
-            }
+    totalPriceDisplay.innerText = total;
+}
 
-            /* ================= SUBMIT ORDER ================= */
-            submitBtn.addEventListener("click", () => {
-                const orderPayload = {
-                    table_id: currentTableId,
-                    items: Object.entries(cart).map(([name, item]) => ({
-                        item_id: item.item_id,
-                        quantity: item.qty
-                    }))
-                };
-                console.log(orderPayload);
+// ================= FORM SUBMIT =================
+orderForm.addEventListener("submit", function (e) {
 
-                console.log("ORDER PAYLOAD:", orderPayload);
-                document.getElementById("order-items").value = JSON.stringify(orderPayload)
+    const orderPayload = {
+        table_id: currentTableId,
+        items: Object.entries(cart).map(([id, item]) => ({
+            item_id: id,
+            quantity: item.qty
+        }))
+    };
 
-                // Example Django request:
-                /*
-                fetch("/create-order/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": getCookie("csrftoken")
-                    },
-                    body: JSON.stringify(orderPayload)
-                });
-                */
-            });
+    orderInput.value = JSON.stringify(orderPayload);
+});
 
-        </script>
+</script>
 
 </body>
-
 </html>
